@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUERRA DE COORDENADAS · Sistemas Coordenados</title>
+<style>
+  :root{
+    --bg:#0E0C08;
+    --panel:#181510;
+    --panel2:#221E16;
+    --line:#3A3324;
+    --oliva:#8A8B4A;
+    --arena:#C9B27C;
+    --fuego:#E8632C;
+    --sangre:#C22B2B;
+    --acero:#7FA6B8;
+    --verde:#6FA85C;
+    --text:#DDD6C4;
+    --muted:#938C77;
+    --mono:'Consolas','Courier New',monospace;
+    --sans:'Segoe UI',system-ui,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.12) 0 2px,transparent 2px 4px);opacity:.35}
+  #danio{position:fixed;inset:0;pointer-events:none;z-index:48;background:radial-gradient(ellipse at center,transparent 55%,rgba(194,43,43,.55));opacity:0;transition:opacity .2s}
+  body.herido #danio{opacity:.5}
+  body.critico #danio{opacity:.4;animation:latidoRojo 1.1s infinite}
+  @keyframes latidoRojo{50%{opacity:.75}}
+  @keyframes parp{50%{opacity:.35}}
+  @keyframes aparece{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
+  @keyframes sacudida{0%,100%{transform:translate(0)}20%{transform:translate(-7px,3px)}40%{transform:translate(6px,-3px)}60%{transform:translate(-4px,2px)}80%{transform:translate(4px,-2px)}}
+  body.impacto{animation:sacudida .35s}
+
+  /* ===== INICIO ===== */
+  #inicio{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;position:relative;
+    background:radial-gradient(ellipse at 50% 120%,rgba(232,99,44,.12),transparent 60%)}
+  .sello{font-family:var(--mono);font-size:.75rem;letter-spacing:.35em;color:var(--fuego);border:1px solid var(--fuego);padding:6px 16px;margin-bottom:26px;animation:parp 1.8s infinite}
+  #inicio h1{font-family:var(--mono);font-size:clamp(1.8rem,5.5vw,3.6rem);color:var(--arena);letter-spacing:.1em;text-shadow:0 0 26px rgba(201,178,124,.3);margin-bottom:6px}
+  #inicio h1 span{color:var(--fuego)}
+  .sub{font-family:var(--mono);color:var(--muted);letter-spacing:.22em;font-size:.85rem;margin-bottom:8px}
+  .autoria{font-family:var(--mono);font-size:.75rem;color:var(--oliva);letter-spacing:.18em;margin-bottom:32px}
+  .narrativa{max-width:660px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--fuego);padding:24px 28px;text-align:left;line-height:1.7;font-size:.97rem;margin-bottom:28px}
+  .narrativa strong{color:var(--arena)}
+  .narrativa em{color:var(--fuego);font-style:normal}
+  .reglas{max-width:660px;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:34px;width:100%}
+  .regla{background:var(--panel2);border:1px solid var(--line);padding:14px;font-size:.82rem;color:var(--muted);line-height:1.55;text-align:left}
+  .regla b{display:block;color:var(--text);font-family:var(--mono);margin-bottom:4px}
+  .btn-p{font-family:var(--mono);font-size:1.05rem;letter-spacing:.15em;background:var(--fuego);color:#1a0d04;border:none;padding:16px 46px;cursor:pointer;font-weight:bold;box-shadow:0 0 34px rgba(232,99,44,.4);transition:transform .15s}
+  .btn-p:hover{transform:scale(1.04)}
+  .aud-nota{margin-top:14px;font-size:.75rem;color:var(--muted);font-family:var(--mono)}
+
+  /* ===== HUD ===== */
+  #hud{display:none;position:sticky;top:0;z-index:40;background:rgba(14,12,8,.97);border-bottom:1px solid var(--line);padding:10px 18px;gap:20px;align-items:center;flex-wrap:wrap;backdrop-filter:blur(4px)}
+  #hud.on{display:flex}
+  .hud-item{font-family:var(--mono);font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .hud-item b{color:var(--text)}
+  #litros{font-size:1.3rem;color:var(--sangre);letter-spacing:.05em;text-shadow:0 0 10px rgba(194,43,43,.5)}
+  .bolsa{width:150px;height:14px;background:#241010;border:1px solid #4A2020;position:relative;overflow:hidden}
+  .bolsa i{position:absolute;inset:0;background:linear-gradient(90deg,#8F1F1F,#C22B2B);transform-origin:left;transition:transform .5s}
+  .bolsa i::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 28.5px,rgba(0,0,0,.5) 28.5px 30px)}
+  #hud .puntos{display:flex;gap:6px}
+  .punto{width:14px;height:14px;border:1px solid var(--line);background:var(--panel2);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+  .punto.ok{background:var(--verde);border-color:var(--verde)}
+  .punto.act{background:var(--fuego);animation:parp 1.3s infinite}
+  #btnAudio{margin-left:auto;background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);font-size:.72rem;padding:7px 12px;cursor:pointer;letter-spacing:.1em}
+  #btnAudio:hover{color:var(--fuego);border-color:var(--fuego)}
+
+  /* ===== JUEGO ===== */
+  #juego{display:none;max-width:1100px;margin:0 auto;padding:22px 18px 60px}
+  #juego.on{display:block}
+
+  .campo{background:var(--panel);border:1px solid var(--line);overflow:hidden;margin-bottom:20px}
+  .campo-cab{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px}
+  .campo-cab .num{font-family:var(--mono);font-size:.7rem;letter-spacing:.3em;color:var(--muted)}
+  .campo-cab h2{font-family:var(--mono);font-size:1.2rem;letter-spacing:.06em}
+  .batalla{position:relative;height:270px;border-bottom:1px solid var(--line);overflow:hidden}
+  .batalla svg{width:100%;height:100%;display:block}
+  .campo-narr{padding:16px 20px;font-size:.92rem;line-height:1.65;border-bottom:1px solid var(--line)}
+  .campo-narr em{color:var(--fuego);font-style:normal}
+
+  .intel{margin:14px 20px 0;background:var(--panel2);border:1px dashed var(--acero);padding:12px 16px;font-size:.85rem;color:var(--acero);display:none;font-family:var(--mono);line-height:1.6}
+  .intel.on{display:block;animation:aparece .3s}
+  .intel-tip{padding:8px 20px 0;font-size:.74rem;color:var(--muted);font-family:var(--mono)}
+  .hotspot{cursor:pointer}
+  .hotspot .aura{animation:parp 2s infinite}
+
+  .consola{padding:20px}
+  .p-etiqueta{font-family:var(--mono);font-size:.7rem;letter-spacing:.25em;color:var(--fuego);margin-bottom:10px}
+  .p-texto{font-size:1.02rem;line-height:1.7;margin-bottom:18px}
+  .math{font-family:var(--mono);color:var(--acero);background:rgba(127,166,184,.09);padding:1px 6px;border-radius:3px;white-space:nowrap}
+  .opciones{display:grid;gap:10px}
+  .opcion{background:var(--panel2);border:1px solid var(--line);padding:13px 16px;cursor:pointer;text-align:left;color:var(--text);font-size:.94rem;font-family:var(--sans);display:flex;gap:12px;align-items:baseline;transition:border-color .15s;width:100%}
+  .opcion:hover:not(:disabled){border-color:var(--fuego);background:#2B251A}
+  .opcion .letra{font-family:var(--mono);color:var(--muted);flex-shrink:0}
+  .opcion:disabled{cursor:default;opacity:.55}
+  .opcion.ok{border-color:var(--verde);background:rgba(111,168,92,.13);opacity:1}
+  .opcion.mal{border-color:var(--sangre);background:rgba(194,43,43,.13);opacity:1}
+
+  .feedback{margin-top:16px;padding:14px 16px;font-size:.88rem;line-height:1.65;display:none;border-left:3px solid}
+  .feedback.on{display:block;animation:aparece .25s}
+  .feedback.bien{background:rgba(111,168,92,.08);border-color:var(--verde);color:#C8DFBC}
+  .feedback.error{background:rgba(194,43,43,.09);border-color:var(--sangre);color:#E8B8B8}
+  .feedback b{font-family:var(--mono)}
+  .btn-s{margin-top:16px;font-family:var(--mono);letter-spacing:.12em;background:none;border:1px solid var(--fuego);color:var(--fuego);padding:11px 26px;cursor:pointer;font-size:.85rem;display:none}
+  .btn-s.on{display:inline-block}
+  .btn-s:hover{background:var(--fuego);color:#1a0d04}
+
+  /* ===== TRANSICIÓN Y FINAL ===== */
+  #transicion{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;text-align:center;padding:20px}
+  #transicion.on{display:flex}
+  #transicion .titulo{font-family:var(--mono);font-size:1.4rem;color:var(--verde);letter-spacing:.2em;animation:aparece .5s}
+  #transicion .msj{color:var(--muted);font-family:var(--mono);font-size:.85rem;max-width:460px;line-height:1.7}
+
+  #final{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;padding:32px;text-align:center}
+  #final.on{display:flex}
+  #final h1{font-family:var(--mono);font-size:clamp(1.6rem,5vw,3rem);letter-spacing:.1em;margin:18px 0 8px}
+  #final.victoria h1{color:var(--verde);text-shadow:0 0 26px rgba(111,168,92,.4)}
+  #final.derrota h1{color:var(--sangre)}
+  #final .stats{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:26px 0}
+  #final .stat{background:var(--panel);border:1px solid var(--line);padding:16px 24px;font-family:var(--mono)}
+  #final .stat b{display:block;font-size:1.5rem;color:var(--arena)}
+  #final .stat span{font-size:.72rem;color:var(--muted);letter-spacing:.15em}
+  #final p.cierre{max-width:580px;line-height:1.7;color:var(--muted);font-size:.95rem}
+
+  footer{padding:18px;text-align:center;font-family:var(--mono);font-size:.72rem;color:var(--muted);letter-spacing:.12em;border-top:1px solid var(--line)}
+  @media(max-width:640px){.batalla{height:210px}}
+</style>
+</head>
+<body>
+<div id="danio"></div>
+
+<!-- ================= INICIO ================= -->
+<section id="inicio">
+  <div class="sello">☢ FRENTE DE BATALLA · OPERACIÓN (x, y, z)</div>
+  <h1>GUERRA DE <span>COORDENADAS</span></h1>
+  <div class="sub">SIMULADOR DE COMBATE · SISTEMAS COORDENADOS</div>
+  <div class="autoria">CREADO POR ASTRID BOLÍVAR · CIENCIAS BÁSICAS · UCOMPENSAR</div>
+  <div class="narrativa">
+    <p>Año 2049. Un ejército de <strong>drones geométricos</strong> ha invadido el territorio y bloquea los cuatro sistemas de navegación del mundo: <em>rectangular, polar, cilíndrico y esférico</em>. Sin ellos, ningún satélite, misil defensivo ni ruta de evacuación puede calcularse.</p>
+    <p style="margin-top:10px">Eres el último <strong>Soldado Cartesiano</strong>. Tu arma no dispara balas: dispara <em>coordenadas exactas</em>. Cada respuesta correcta destruye un dron. Cada error… el dron dispara primero, y pierdes <strong>medio litro de sangre</strong>. Tienes 5 litros. Lucha por tu vida.</p>
+  </div>
+  <div class="reglas">
+    <div class="regla"><b>🩸 5.0 LITROS</b>Cada error cuesta 0.5 L de sangre. Al llegar a 0.0 L, caes en combate.</div>
+    <div class="regla"><b>🎯 5 FRENTES</b>Rectangular, polar, cilíndrico, esférico y la Batalla Total de conversiones.</div>
+    <div class="regla"><b>📡 INTELIGENCIA</b>Cada campo de batalla esconde 3 informes de inteligencia. Haz clic para revelarlos.</div>
+    <div class="regla"><b>⚠ ESTADO CRÍTICO</b>Bajo 2.0 L tu visión se nubla y los tambores de guerra se aceleran.</div>
+  </div>
+  <button class="btn-p" onclick="iniciarJuego()">▶ ENTRAR AL COMBATE</button>
+  <div class="aud-nota">La operación activa música de guerra apocalíptica. Silénciala desde el panel superior si lo necesitas.</div>
+</section>
+
+<!-- ================= HUD ================= -->
+<header id="hud">
+  <div class="hud-item">🩸 <span id="litros">5.0 L</span> <div class="bolsa"><i id="barraSangre"></i></div></div>
+  <div class="hud-item">FRENTES <div class="puntos" id="puntosMision"></div></div>
+  <div class="hud-item">DRONES DERRIBADOS <b id="hudAciertos">0</b>/15</div>
+  <div class="hud-item">HERIDAS <b id="hudErrores">0</b></div>
+  <button id="btnAudio" onclick="toggleAudio()">🔊 SONIDO: ON</button>
+</header>
+
+<!-- ================= JUEGO ================= -->
+<main id="juego"><div id="zonaMision"></div></main>
+
+<!-- ================= TRANSICIÓN ================= -->
+<div id="transicion">
+  <div class="titulo" id="transTitulo">✔ FRENTE LIBERADO</div>
+  <div class="msj" id="transMsj"></div>
+</div>
+
+<!-- ================= FINAL ================= -->
+<section id="final">
+  <div id="finalEmoji" style="font-size:3.2rem"></div>
+  <h1 id="finalTitulo"></h1>
+  <div class="stats">
+    <div class="stat"><b id="stAciertos">0</b><span>DRONES DERRIBADOS</span></div>
+    <div class="stat"><b id="stErrores">0</b><span>HERIDAS</span></div>
+    <div class="stat"><b id="stSangre">0.0 L</b><span>SANGRE RESTANTE</span></div>
+    <div class="stat"><b id="stFrentes">0/5</b><span>FRENTES LIBERADOS</span></div>
+  </div>
+  <p class="cierre" id="finalMsj"></p>
+  <button class="btn-p" style="margin-top:28px" onclick="location.reload()">↻ VOLVER AL COMBATE</button>
+</section>
+
+<footer>Creado por Astrid Bolívar · Ciencias Básicas · UCompensar</footer>
+
+<script>
+/* ============================================================
+   AUDIO APOCALÍPTICO — Web Audio API
+   Tambores de guerra + dron menor + sirena lejana
+============================================================ */
+let AC=null, audioOn=true, tamborTimer=null, tamborBPM=64, sirenaTimer=null;
+function crearAudio(){
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  const master=AC.createGain(); master.gain.value=.17; master.connect(AC.destination); AC._master=master;
+  // Dron apocalíptico: segunda menor grave sostenida
+  const filtro=AC.createBiquadFilter(); filtro.type='lowpass'; filtro.frequency.value=300; filtro.connect(master);
+  [[49,'sawtooth',.45],[51.9,'sawtooth',.45],[98,'triangle',.22],[32.7,'sine',.4]].forEach(([f,t,g])=>{
+    const o=AC.createOscillator(),ga=AC.createGain();
+    o.type=t;o.frequency.value=f;ga.gain.value=g;
+    o.connect(ga);ga.connect(filtro);o.start();
+  });
+  const lfo=AC.createOscillator(),lfoG=AC.createGain();
+  lfo.frequency.value=.07;lfoG.gain.value=140;
+  lfo.connect(lfoG);lfoG.connect(filtro.frequency);lfo.start();
+  programarTambores();
+  sirenaTimer=setInterval(sirena, 21000);
+  setTimeout(sirena, 4000);
+}
+function tambor(){
+  if(!AC||!audioOn) return;
+  const t=AC.currentTime;
+  // patrón: BUM — BUM — bum-bum (tom grave de guerra)
+  [[0,.55,60],[0.5,.55,60],[0.82,.3,80],[0.94,.3,80]].forEach(([d,v,f])=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.setValueAtTime(f,t+d);o.frequency.exponentialRampToValueAtTime(34,t+d+.16);
+    g.gain.setValueAtTime(v,t+d);g.gain.exponentialRampToValueAtTime(.001,t+d+.3);
+    o.connect(g);g.connect(AC._master);o.start(t+d);o.stop(t+d+.32);
+  });
+  // golpe metálico (redoblante lejano)
+  const n=AC.createBufferSource(), buf=AC.createBuffer(1,AC.sampleRate*.1,AC.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.exp(-i/900);
+  n.buffer=buf; const ng=AC.createGain(); ng.gain.value=.12;
+  const hp=AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2000;
+  n.connect(hp);hp.connect(ng);ng.connect(AC._master); n.start(t+.5);
+}
+function programarTambores(){ clearInterval(tamborTimer); tamborTimer=setInterval(tambor,60000/tamborBPM*2); tambor(); }
+function sirena(){
+  if(!AC||!audioOn) return;
+  const t=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(420,t);o.frequency.linearRampToValueAtTime(660,t+2.4);o.frequency.linearRampToValueAtTime(420,t+4.8);
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.045,t+1.2);g.gain.linearRampToValueAtTime(.0001,t+4.8);
+  o.connect(g);g.connect(AC._master);o.start(t);o.stop(t+5);
+}
+function sfx(tipo){
+  if(!AC||!audioOn) return;
+  const t=AC.currentTime;
+  if(tipo==='disparo'){ // ráfaga del soldado
+    const n=AC.createBufferSource(),buf=AC.createBuffer(1,AC.sampleRate*.25,AC.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/1600);
+    n.buffer=buf;const g=AC.createGain();g.gain.value=.3;
+    const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1400;
+    n.connect(bp);bp.connect(g);g.connect(AC._master);n.start(t);
+    const o=AC.createOscillator(),og=AC.createGain();
+    o.type='square';o.frequency.setValueAtTime(220,t);o.frequency.exponentialRampToValueAtTime(60,t+.2);
+    og.gain.setValueAtTime(.2,t);og.gain.exponentialRampToValueAtTime(.001,t+.25);
+    o.connect(og);og.connect(AC._master);o.start(t);o.stop(t+.3);
+  } else if(tipo==='herida'){ // láser enemigo + impacto sordo
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sawtooth';o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(120,t+.35);
+    g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.001,t+.5);
+    o.connect(g);g.connect(AC._master);o.start(t);o.stop(t+.55);
+    const o2=AC.createOscillator(),g2=AC.createGain();
+    o2.type='sine';o2.frequency.setValueAtTime(70,t+.3);o2.frequency.exponentialRampToValueAtTime(30,t+.55);
+    g2.gain.setValueAtTime(.5,t+.3);g2.gain.exponentialRampToValueAtTime(.001,t+.7);
+    o2.connect(g2);g2.connect(AC._master);o2.start(t+.3);o2.stop(t+.75);
+  } else if(tipo==='victoria-frente'){
+    [261.6,329.6,392,523.3].forEach((f,i)=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.type='triangle';o.frequency.value=f;
+      g.gain.setValueAtTime(.14,t+i*.12);g.gain.exponentialRampToValueAtTime(.001,t+i*.12+.5);
+      o.connect(g);g.connect(AC._master);o.start(t+i*.12);o.stop(t+i*.12+.55);
+    });
+  } else if(tipo==='intel'){
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=980;
+    g.gain.setValueAtTime(.09,t);g.gain.exponentialRampToValueAtTime(.001,t+.25);
+    o.connect(g);g.connect(AC._master);o.start(t);o.stop(t+.28);
+  }
+}
+function toggleAudio(){
+  audioOn=!audioOn;
+  if(AC) AC._master.gain.value=audioOn?.17:0;
+  document.getElementById('btnAudio').textContent=audioOn?'🔊 SONIDO: ON':'🔇 SONIDO: OFF';
+}
+
+/* ============================================================
+   DATOS — 5 FRENTES, 3 PREGUNTAS CADA UNO
+   Distractores del mismo campo semántico, orden barajado
+============================================================ */
+const M=t=>`<span class="math">${t}</span>`;
+const MISIONES=[
+{
+  nombre:'FRENTE 1 · ZONA RECTANGULAR',
+  color:'#7FA6B8', terreno:'rect',
+  narrativa:`Ciudad en ruinas cuadriculada como un plano cartesiano gigante. Los drones patrullan calles paralelas a los ejes. La radio cruje: <em>"Soldado: aquí todo se mide en (x, y, z). Domina distancias, planos y puntos medios, o no saldrás de la cuadrícula."</em>`,
+  intel:[
+    {x:'14%',y:'60%',icono:'📻',texto:'RADIO: Distancia en R³ — d = √[(x₂−x₁)² + (y₂−y₁)² + (z₂−z₁)²]. Es Pitágoras en tres dimensiones.'},
+    {x:'50%',y:'34%',icono:'🗺️',texto:'MAPA TÁCTICO: En R³, una ecuación con UNA sola variable (como x = 3) describe un PLANO, no un punto ni una recta.'},
+    {x:'84%',y:'58%',icono:'📦',texto:'CAJA DE MUNICIÓN: Punto medio — promedia coordenada a coordenada: ((x₁+x₂)/2, (y₁+y₂)/2, (z₁+z₂)/2).'}
+  ],
+  preguntas:[
+    {q:`Un dron está en ${M('(1, 2, 3)')} y tú en ${M('(4, 6, 3)')}. Tu arma necesita la distancia exacta para el disparo. ¿Cuál es?`,
+     ops:['5','7','√13','25'],correcta:0,
+     fb_ok:`Blanco confirmado: d = √(3² + 4² + 0²) = √25 = 5 unidades.`,
+     fb_mal:`Calcula las diferencias: Δx = 3, Δy = 4, Δz = 0. Luego d = √(9+16+0). Un error frecuente es olvidar la raíz (eso da 25) o sumar en vez de elevar al cuadrado.`},
+    {q:`El escudo enemigo tiene ecuación ${M('x = 3')} en ${M('R³')}. Para atravesarlo debes identificar qué es geométricamente:`,
+     ops:['Un plano paralelo al plano yz que corta al eje x en 3',
+          'Una recta paralela al eje x que pasa por el punto 3',
+          'Un plano paralelo al plano xy que corta al eje z en 3',
+          'Un punto ubicado sobre el eje x a distancia 3 del origen'],correcta:0,
+     fb_ok:`Correcto: en R³, x = 3 deja libres a y y z, así que es todo un plano vertical paralelo al plano yz.`,
+     fb_mal:`En R³, x = 3 no restringe ni a y ni a z: ambas recorren todos los reales. El conjunto es bidimensional — un plano paralelo al plano yz. Sería un punto solo en R¹ y una recta solo en R².`},
+    {q:`Debes detonar una carga justo en el punto medio entre los búnkeres ${M('(2, −4, 6)')} y ${M('(6, 0, −2)')}. ¿Dónde la colocas?`,
+     ops:[`${M('(4, −2, 2)')}`,`${M('(8, −4, 4)')}`,`${M('(4, 2, −2)')}`,`${M('(2, −2, 4)')}`],correcta:0,
+     fb_ok:`Detonación exitosa: promedio por coordenada — (8/2, −4/2, 4/2) = (4, −2, 2).`,
+     fb_mal:`Promedia cada coordenada por separado: (2+6)/2 = 4, (−4+0)/2 = −2, (6+(−2))/2 = 2. Cuidado con los signos en la resta de la tercera coordenada.`}
+  ]
+},
+{
+  nombre:'FRENTE 2 · DESIERTO POLAR',
+  color:'#C9B27C', terreno:'polar',
+  narrativa:`Un desierto circular barrido por tormentas de arena. Los drones giran en órbitas alrededor de una torre central: aquí las calles rectas no existen. <em>"Soldado: olvida (x, y). Apunta con radio y ángulo (r, θ), o los drones te rodearán."</em>`,
+  intel:[
+    {x:'15%',y:'36%',icono:'🧭',texto:'BRÚJULA: r = √(x²+y²) y tan θ = y/x. Verifica SIEMPRE el cuadrante antes de decidir θ.'},
+    {x:'50%',y:'62%',icono:'📡',texto:'ANTENA: Para volver a rectangulares: x = r·cos θ, y = r·sen θ.'},
+    {x:'85%',y:'34%',icono:'🛰️',texto:'SATÉLITE: La curva r = 2a·cos θ es una circunferencia de radio a centrada en (a, 0). Multiplica por r y completa cuadrados para verificarlo.'}
+  ],
+  preguntas:[
+    {q:`Un dron aparece en el radar rectangular en ${M('(1, √3)')}. Tu cañón polar exige ${M('(r, θ)')}. ¿Qué coordenadas cargas?`,
+     ops:[`${M('(2, π/3)')}`,`${M('(2, π/6)')}`,`${M('(√3, π/3)')}`,`${M('(2, 2π/3)')}`],correcta:0,
+     fb_ok:`Dron derribado: r = √(1+3) = 2 y tan θ = √3/1 ⟹ θ = π/3 (primer cuadrante).`,
+     fb_mal:`r = √(1² + (√3)²) = √4 = 2. Para el ángulo: tan θ = √3 ⟹ θ = π/3, no π/6 (ese corresponde a tan θ = 1/√3). El punto está en el primer cuadrante.`},
+    {q:`La trinchera enemiga sigue la curva ${M('r = 4cos θ')}. Para bombardearla debes reconocer su forma exacta:`,
+     ops:['Una circunferencia de radio 2 centrada en el punto (2, 0)',
+          'Una circunferencia de radio 4 centrada en el punto (0, 0)',
+          'Una circunferencia de radio 2 centrada en el punto (0, 2)',
+          'Una circunferencia de radio 4 centrada en el punto (2, 0)'],correcta:0,
+     fb_ok:`Trinchera identificada: multiplicando por r, r² = 4r·cosθ ⟹ x²+y² = 4x ⟹ (x−2)² + y² = 4. Radio 2, centro (2,0).`,
+     fb_mal:`Multiplica ambos lados por r: r² = 4r·cos θ, es decir x² + y² = 4x. Completa cuadrados: (x−2)² + y² = 4. El 4 de la ecuación polar NO es el radio: el radio es 2.`},
+    {q:`Orden de artillería: convertir la posición polar ${M('(r, θ) = (4, π/6)')} a rectangulares para el sistema de misiles. ¿Resultado?`,
+     ops:[`${M('(2√3, 2)')}`,`${M('(2, 2√3)')}`,`${M('(4, √3)')}`,`${M('(√3, 4)')}`],correcta:0,
+     fb_ok:`Misil en curso: x = 4cos(π/6) = 4·(√3/2) = 2√3, y = 4sen(π/6) = 4·(1/2) = 2.`,
+     fb_mal:`Usa x = r·cos θ y y = r·sen θ con cos(π/6) = √3/2 y sen(π/6) = 1/2. Invertir seno y coseno intercambia las coordenadas: verifica cuál va con x.`}
+  ]
+},
+{
+  nombre:'FRENTE 3 · TORRES CILÍNDRICAS',
+  color:'#8A8B4A', terreno:'cilindro',
+  narrativa:`Un bosque de silos y torres de enfriamiento. Los drones ascienden en espiral por columnas verticales: el enemigo se mueve en ${'(r, θ, z)'}. <em>"Soldado: las cilíndricas son polares con altura. Confundir el eje te costará sangre."</em>`,
+  intel:[
+    {x:'14%',y:'40%',icono:'🏗️',texto:'TORRE: Cilíndricas = polares + z. Conversión: x = r·cosθ, y = r·senθ, z = z. Y la clave: x² + y² = r².'},
+    {x:'50%',y:'30%',icono:'📟',texto:'PANEL: r = c (constante) es un CILINDRO de radio c con eje en el eje z. θ = c es un SEMIPLANO. z = c es un plano horizontal.'},
+    {x:'85%',y:'56%',icono:'🔋',texto:'BATERÍA: La ecuación z = r en cilíndricas equivale a z = √(x²+y²): un CONO con vértice en el origen abriendo hacia arriba.'}
+  ],
+  preguntas:[
+    {q:`Un dron flota en rectangulares en ${M('(0, 3, 4)')}. Tu lanzagranadas usa cilíndricas ${M('(r, θ, z)')}. ¿Qué cargas?`,
+     ops:[`${M('(3, π/2, 4)')}`,`${M('(3, 0, 4)')}`,`${M('(4, π/2, 3)')}`,`${M('(5, π/2, 4)')}`],correcta:0,
+     fb_ok:`Impacto directo: r = √(0+9) = 3; el punto (0,3) está sobre el eje y positivo, así que θ = π/2; z se conserva: 4.`,
+     fb_mal:`r = √(x²+y²) = √9 = 3 (¡z NO entra en r!). Como x = 0 y y > 0, el ángulo es θ = π/2, no 0. Y z pasa directo: z = 4. El 5 saldría de mezclar z dentro del radio: ese es el error del sistema esférico.`},
+    {q:`El escudo del silo central tiene ecuación ${M('r = 5')} en cilíndricas. ¿Qué superficie debes perforar?`,
+     ops:['Un cilindro circular de radio 5 cuyo eje es el eje z',
+          'Una esfera de radio 5 con centro en el origen del sistema',
+          'Un plano ubicado a una distancia 5 del origen del sistema',
+          'Un cono de abertura 5 con el vértice en el origen del sistema'],correcta:0,
+     fb_ok:`Escudo perforado: r = 5 significa x² + y² = 25 para TODO z — un cilindro infinito de radio 5 alrededor del eje z.`,
+     fb_mal:`En cilíndricas, r = 5 deja libre a z: todos los puntos a distancia 5 del eje z, para cualquier altura. Eso es un cilindro. La esfera sería ρ = 5 en ESFÉRICAS: no confundas r con ρ.`},
+    {q:`El túnel de escape tiene ecuación ${M('z = r')} en cilíndricas. Inteligencia pregunta: ¿qué superficie es en rectangulares?`,
+     ops:['Un cono con vértice en el origen que abre hacia arriba',
+          'Un cilindro con eje vertical que crece hacia arriba',
+          'Un paraboloide con vértice en el origen que abre hacia arriba',
+          'Una esfera con centro en el origen desplazada hacia arriba'],correcta:0,
+     fb_ok:`Túnel asegurado: z = r = √(x²+y²). Al elevar al cuadrado: z² = x²+y² con z ≥ 0 — el cono superior.`,
+     fb_mal:`Sustituye r = √(x²+y²): la superficie es z = √(x²+y²). El paraboloide sería z = r² (con el radio al CUADRADO). La diferencia entre z = r y z = r² separa cono de paraboloide.`}
+  ]
+},
+{
+  nombre:'FRENTE 4 · DOMO ESFÉRICO',
+  color:'#B58BE8', terreno:'esfera',
+  narrativa:`El cuartel general enemigo: un domo colosal donde los drones orbitan en capas concéntricas. Aquí todo se mide desde el centro: <em>"Soldado, memoriza (ρ, θ, φ): ρ es la distancia al origen, θ el ángulo polar en el plano xy, y φ el ángulo que se abre desde el eje z. Confundirlos es morir."</em>`,
+  intel:[
+    {x:'15%',y:'55%',icono:'🌐',texto:'GLOBO: Conversión esférica — x = ρ·senφ·cosθ, y = ρ·senφ·senθ, z = ρ·cosφ. Y siempre: ρ² = x² + y² + z².'},
+    {x:'50%',y:'28%',icono:'🎯',texto:'MIRA: φ se mide DESDE el eje z positivo: φ = 0 apunta al polo norte, φ = π/2 al ecuador, φ = π al polo sur.'},
+    {x:'84%',y:'54%',icono:'🛡️',texto:'ESCUDO: ρ = c es una ESFERA. φ = c es un CONO. θ = c es un SEMIPLANO. Tres constantes, tres superficies distintas.'}
+  ],
+  preguntas:[
+    {q:`Un dron orbita en rectangulares en ${M('(1, 1, √2)')}. El cañón de plasma usa esféricas ${M('(ρ, θ, φ)')}. ¿Qué coordenadas fijas?`,
+     ops:[`${M('(2, π/4, π/4)')}`,`${M('(2, π/4, π/2)')}`,`${M('(√2, π/4, π/4)')}`,`${M('(2, π/2, π/4)')}`],correcta:0,
+     fb_ok:`Plasma certero: ρ = √(1+1+2) = 2; θ = arctan(1/1) = π/4; cosφ = z/ρ = √2/2 ⟹ φ = π/4.`,
+     fb_mal:`ρ = √(x²+y²+z²) = √4 = 2 (no √2: incluye z). θ = π/4 porque x = y en el primer cuadrante. Para φ usa cos φ = z/ρ = √2/2, así que φ = π/4, no π/2.`},
+    {q:`El anillo defensivo del domo tiene ecuación ${M('φ = π/4')}. ¿Qué superficie forma esa flota de drones?`,
+     ops:['Un cono con vértice en el origen y abertura de 45° respecto al eje z',
+          'Un semiplano vertical que contiene al eje z rotado 45° del eje x',
+          'Una esfera con centro en el origen y radio proporcional a 45°',
+          'Un cilindro con eje sobre el eje z e inclinación de 45° del plano'],correcta:0,
+     fb_ok:`Anillo destruido: todos los puntos cuya dirección forma 45° con el eje z — un cono completo alrededor del eje z.`,
+     fb_mal:`φ constante fija el ángulo respecto al eje z pero deja libres a ρ y θ: los puntos barren un CONO. El semiplano corresponde a θ = c y la esfera a ρ = c. La tabla del escudo lo resume.`},
+    {q:`Orden final del frente: convertir la posición esférica ${M('(ρ, θ, φ) = (4, π/2, π/2)')} a rectangulares. ¿Dónde disparas?`,
+     ops:[`${M('(0, 4, 0)')}`,`${M('(4, 0, 0)')}`,`${M('(0, 0, 4)')}`,`${M('(0, 2√2, 2√2)')}`],correcta:0,
+     fb_ok:`Disparo perfecto: x = 4·sen(π/2)·cos(π/2) = 0, y = 4·sen(π/2)·sen(π/2) = 4, z = 4·cos(π/2) = 0. El punto está sobre el eje y.`,
+     fb_mal:`Aplica las tres fórmulas: sen(π/2) = 1 y cos(π/2) = 0. Entonces x = 4·1·0 = 0, y = 4·1·1 = 4, z = 4·0 = 0. φ = π/2 significa "en el ecuador", así que z DEBE ser 0.`}
+  ]
+},
+{
+  nombre:'FRENTE 5 · BATALLA TOTAL',
+  color:'#E8632C', terreno:'total',
+  narrativa:`El núcleo de mando enemigo. Aquí los drones cambian de sistema coordenado en pleno vuelo: rectangular, polar, cilíndrico, esférico. <em>"Soldado: la última batalla no es calcular, es DECIDIR qué sistema usar y saber traducir entre ellos. Gana, y la guerra termina."</em>`,
+  intel:[
+    {x:'14%',y:'34%',icono:'⚔️',texto:'ESTRATEGIA: Elige el sistema según la SIMETRÍA: esferas → esféricas; cilindros y conos → cilíndricas; regiones circulares planas → polares; cajas → rectangulares.'},
+    {x:'50%',y:'60%',icono:'🔗',texto:'ENLACE: Puente cilíndricas ↔ esféricas: r = ρ·senφ y z = ρ·cosφ. De ahí: r² + z² = ρ².'},
+    {x:'85%',y:'32%',icono:'🚩',texto:'BANDERA: θ significa LO MISMO en cilíndricas y esféricas: el ángulo en el plano xy. Es el único aliado común de ambos sistemas.'}
+  ],
+  preguntas:[
+    {q:`Debes calcular un campo de energía sobre la región esférica ${M('x² + y² + z² ≤ 9')}. ¿Qué sistema de coordenadas ordenas usar?`,
+     ops:['Esféricas, porque la región tiene simetría respecto al origen',
+          'Cilíndricas, porque la región tiene simetría respecto a un eje',
+          'Rectangulares, porque la región tiene fronteras de tipo constante',
+          'Polares, porque la región tiene proyección circular en el plano'],correcta:0,
+     fb_ok:`Decisión de comandante: la bola de radio 3 se describe en esféricas simplemente como 0 ≤ ρ ≤ 3 — límites constantes en las tres variables.`,
+     fb_mal:`La simetría manda: una bola centrada en el origen se describe con 0 ≤ ρ ≤ 3, 0 ≤ θ ≤ 2π, 0 ≤ φ ≤ π. En cualquier otro sistema los límites serían raíces cuadradas incómodas. Simetría esférica → esféricas.`},
+    {q:`El traductor de sistemas está dañado. ¿Cuál es la relación correcta entre las cilíndricas ${M('(r, z)')} y la esférica ${M('ρ')}?`,
+     ops:[`${M('ρ² = r² + z²')}`,`${M('ρ = r + z')}`,`${M('ρ² = r² − z²')}`,`${M('r² = ρ² + z²')}`],correcta:0,
+     fb_ok:`Traductor reparado: ρ mide la distancia total al origen y r la distancia al eje z; con z de cateto vertical, Pitágoras da ρ² = r² + z².`,
+     fb_mal:`Dibuja el triángulo rectángulo: r es el cateto horizontal (distancia al eje z), z el cateto vertical, y ρ la hipotenusa (distancia al origen). Pitágoras: ρ² = r² + z². Las distancias no se suman linealmente.`},
+    {q:`Última defensa enemiga: la superficie ${M('θ = π/4')} (misma ecuación en cilíndricas y en esféricas). ¿Qué es?`,
+     ops:['Un semiplano vertical que parte del eje z formando 45° con el eje x',
+          'Un cono circular alrededor del eje z con abertura de 45 grados',
+          'Un plano completo que contiene al eje x inclinado 45 grados',
+          'Una recta en el plano xy que pasa por el origen a 45 grados'],correcta:0,
+     fb_ok:`¡GUERRA GANADA! θ = π/4 fija la dirección en el plano xy pero deja libres r (o ρ, φ) y z: un semiplano vertical anclado en el eje z. Los cuatro sistemas son tuyos.`,
+     fb_mal:`θ constante fija solo la dirección angular en el plano xy; el radio y la altura quedan libres. Eso genera un SEMIplano (no plano completo: r ≥ 0 no permite cruzar al otro lado). El cono era φ = c, en esféricas.`}
+  ]
+},
+];
+
+/* ============================================================
+   ESCENARIOS DE BATALLA (SVG) — soldado + dron + terreno
+============================================================ */
+function svgSoldado(color){
+  // soldado con rifle, se degrada con vendas según heridas
+  const heridas=estado.errores;
+  return `
+  <g id="soldado" transform="translate(120,150)">
+    <ellipse cx="0" cy="86" rx="34" ry="7" fill="rgba(0,0,0,.4)"/>
+    <!-- piernas -->
+    <path d="M-10 40 L-16 82 L-6 82 L-2 46 Z" fill="#4A4A32"/>
+    <path d="M10 40 L18 82 L8 82 L4 46 Z" fill="#4A4A32"/>
+    <rect x="-18" y="78" width="14" height="8" fill="#26261A"/>
+    <rect x="8" y="78" width="14" height="8" fill="#26261A"/>
+    <!-- torso -->
+    <path d="M-16 -6 Q0 -14 16 -6 L14 42 Q0 48 -14 42 Z" fill="#5A5C38"/>
+    <rect x="-12" y="2" width="24" height="16" fill="#454728" rx="2"/>
+    ${heridas>=2?'<rect x="-13" y="20" width="26" height="7" fill="#B8B2A0" opacity=".95"/>':''}
+    ${heridas>=5?'<rect x="-15" y="-2" width="10" height="6" fill="#B8B2A0" transform="rotate(-18)"/>':''}
+    <!-- brazo trasero + rifle -->
+    <path d="M12 0 L44 10 L42 17 L10 8 Z" fill="#5A5C38"/>
+    <g id="rifle">
+      <rect x="20" y="4" width="58" height="7" fill="#2A2A22" rx="2"/>
+      <rect x="70" y="2" width="16" height="4" fill="#1C1C16"/>
+      <rect x="30" y="10" width="8" height="12" fill="#2A2A22"/>
+      <polygon id="fogonazo" points="88,4 106,-2 98,6 108,8 98,10 104,14" fill="#FFD34D" opacity="0"/>
+    </g>
+    <path d="M-14 2 L8 14 L6 21 L-16 10 Z" fill="#50522F"/>
+    <!-- cabeza con casco -->
+    <circle cx="0" cy="-20" r="13" fill="#C99B72"/>
+    ${heridas>=8?'<path d="M-13 -24 Q0 -30 13 -24 L13 -19 L-13 -19 Z" fill="#B8B2A0"/>':''}
+    <path d="M-14 -22 Q0 -40 14 -22 L14 -26 Q0 -42 -14 -26 Z" fill="#3C3E24"/>
+    <path d="M-15 -23 Q0 -37 15 -23 L15 -20 L-15 -20 Z" fill="#3C3E24"/>
+    <circle cx="5" cy="-19" r="1.8" fill="#20140C"/>
+    <path d="M-2 -12 L7 -12" stroke="#8A5A44" stroke-width="1.6" stroke-linecap="round"/>
+  </g>`;
+}
+function svgDron(color){
+  return `
+  <g id="dron" transform="translate(650,95)">
+    <g id="dronCuerpo">
+      <animateTransform attributeName="transform" type="translate" values="0,0;0,-9;0,0" dur="2.2s" repeatCount="indefinite" additive="sum"/>
+      <polygon points="0,-26 24,0 0,26 -24,0" fill="#2A2A30" stroke="${color}" stroke-width="2"/>
+      <circle r="9" fill="${color}" opacity=".85"><animate attributeName="opacity" values=".85;.35;.85" dur="1.3s" repeatCount="indefinite"/></circle>
+      <line x1="-24" y1="0" x2="-40" y2="0" stroke="#2A2A30" stroke-width="4"/>
+      <line x1="24" y1="0" x2="40" y2="0" stroke="#2A2A30" stroke-width="4"/>
+      <ellipse cx="-40" cy="0" rx="12" ry="3" fill="${color}" opacity=".5"><animateTransform attributeName="transform" type="rotate" values="0 -40 0;180 -40 0" dur=".25s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="40" cy="0" rx="12" ry="3" fill="${color}" opacity=".5"><animateTransform attributeName="transform" type="rotate" values="0 40 0;180 40 0" dur=".25s" repeatCount="indefinite"/></ellipse>
+    </g>
+    <line id="laser" x1="-40" y1="18" x2="-460" y2="62" stroke="#FF3B3B" stroke-width="3" opacity="0"/>
+    <g id="explosion" opacity="0">
+      <circle r="6" fill="#FFD34D"/>
+      <g stroke="#E8632C" stroke-width="3">${Array.from({length:8},(_,i)=>`<line x1="0" y1="0" x2="${34*Math.cos(i*Math.PI/4)}" y2="${34*Math.sin(i*Math.PI/4)}"/>`).join('')}</g>
+    </g>
+  </g>`;
+}
+function svgTerreno(tipo,color){
+  if(tipo==='rect') return `
+    <rect width="900" height="270" fill="#12100B"/>
+    <g stroke="#252115" stroke-width="1">${Array.from({length:18},(_,i)=>`<line x1="${i*50}" y1="0" x2="${i*50}" y2="270"/>`).join('')}${Array.from({length:6},(_,i)=>`<line x1="0" y1="${i*54}" x2="900" y2="${i*54}"/>`).join('')}</g>
+    <path d="M0 236 L900 236" stroke="${color}" opacity=".5"/><path d="M450 270 L450 0" stroke="${color}" opacity=".25"/>
+    <rect x="280" y="150" width="70" height="86" fill="#1C1912"/><rect x="380" y="120" width="60" height="116" fill="#1A1710"/><rect x="760" y="160" width="80" height="76" fill="#1C1912"/>
+    <text x="460" y="24" fill="${color}" opacity=".55" font-size="14" font-family="monospace">z</text>
+    <text x="874" y="230" fill="${color}" opacity=".55" font-size="14" font-family="monospace">x</text>`;
+  if(tipo==='polar') return `
+    <rect width="900" height="270" fill="#171208"/>
+    <g transform="translate(450,240)" stroke="${color}" fill="none" opacity=".5">
+      ${[60,120,180,240].map(r=>`<path d="M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0"/>`).join('')}
+      ${Array.from({length:7},(_,i)=>`<line x1="0" y1="0" x2="${250*Math.cos(Math.PI-i*Math.PI/6)}" y2="${-250*Math.sin(Math.PI-i*Math.PI/6)}" opacity=".4"/>`).join('')}
+    </g>
+    <circle cx="450" cy="240" r="10" fill="${color}" opacity=".7"/>
+    <text x="20" y="26" fill="${color}" opacity=".55" font-size="13" font-family="monospace">(r, θ)</text>
+    <path d="M0 250 Q220 232 450 244 Q700 254 900 240 L900 270 L0 270 Z" fill="#1E180C"/>`;
+  if(tipo==='cilindro') return `
+    <rect width="900" height="270" fill="#10120B"/>
+    ${[70,220,740,850].map((x,i)=>`
+      <g><rect x="${x-32}" y="${60+i*8}" width="64" height="${190-i*8}" fill="#1A1D12"/>
+      <ellipse cx="${x}" cy="${62+i*8}" rx="32" ry="10" fill="#242818" stroke="${color}" stroke-width="1" opacity=".9"/>
+      <ellipse cx="${x}" cy="250" rx="32" ry="10" fill="#14160D"/></g>`).join('')}
+    <text x="20" y="26" fill="${color}" opacity=".55" font-size="13" font-family="monospace">(r, θ, z)</text>
+    <path d="M0 252 L900 252 L900 270 L0 270 Z" fill="#181A10"/>`;
+  if(tipo==='esfera') return `
+    <rect width="900" height="270" fill="#120E18"/>
+    <g transform="translate(450,135)" stroke="${color}" fill="none" opacity=".55">
+      <circle r="110"/><ellipse rx="110" ry="34"/><ellipse rx="110" ry="34" transform="rotate(60)"/><ellipse rx="110" ry="34" transform="rotate(120)"/>
+      <ellipse rx="70" ry="110"/>
+    </g>
+    <circle cx="450" cy="135" r="5" fill="${color}"/>
+    <line x1="450" y1="135" x2="450" y2="10" stroke="${color}" opacity=".4" stroke-dasharray="5 5"/>
+    <text x="458" y="20" fill="${color}" opacity=".6" font-size="13" font-family="monospace">φ=0</text>
+    <text x="20" y="26" fill="${color}" opacity=".55" font-size="13" font-family="monospace">(ρ, θ, φ)</text>
+    <path d="M0 256 L900 256 L900 270 L0 270 Z" fill="#191320"/>`;
+  return `
+    <rect width="900" height="270" fill="#150D08"/>
+    <g transform="translate(450,140)" stroke="${color}" fill="none" opacity=".4">
+      <circle r="100"/><ellipse rx="100" ry="30"/>
+      <rect x="-70" y="-70" width="140" height="140" opacity=".5"/>
+      ${Array.from({length:8},(_,i)=>`<line x1="0" y1="0" x2="${120*Math.cos(i*Math.PI/4)}" y2="${120*Math.sin(i*Math.PI/4)}" opacity=".4"/>`).join('')}
+    </g>
+    <text x="450" y="30" fill="${color}" opacity=".7" font-size="13" text-anchor="middle" font-family="monospace">⚠ NÚCLEO DE MANDO · TODOS LOS SISTEMAS ⚠</text>
+    <path d="M0 254 L900 254 L900 270 L0 270 Z" fill="#1C120A"/>`;
+}
+function svgBatalla(mi,idx){
+  const spots=mi.intel.map((p,i)=>`
+    <g class="hotspot" onclick="verIntel(${idx},${i})" transform="translate(${9*parseFloat(p.x)},${2.7*parseFloat(p.y)})">
+      <circle class="aura" r="20" fill="${mi.color}" opacity=".14"/>
+      <circle r="13" fill="#0E0C08" stroke="${mi.color}" stroke-width="1.5" id="spot-${idx}-${i}"/>
+      <text y="6" text-anchor="middle" font-size="14">${p.icono}</text>
+    </g>`).join('');
+  return `<svg viewBox="0 0 900 270" preserveAspectRatio="xMidYMid slice">
+    ${svgTerreno(mi.terreno,mi.color)}
+    ${svgSoldado(mi.color)}
+    ${svgDron(mi.color)}
+    ${spots}
+  </svg>`;
+}
+
+/* ============================================================
+   ESTADO Y MOTOR
+============================================================ */
+let estado={mision:0,pregunta:0,aciertos:0,errores:0,sangre:5.0,terminado:false,ordenOps:[]};
+
+function iniciarJuego(){
+  crearAudio();
+  document.getElementById('inicio').style.display='none';
+  document.getElementById('hud').classList.add('on');
+  document.getElementById('juego').classList.add('on');
+  renderPuntos(); renderMision(); actualizarSangre();
+}
+function renderPuntos(){
+  document.getElementById('puntosMision').innerHTML=
+    MISIONES.map((_,i)=>`<div class="punto ${i<estado.mision?'ok':i===estado.mision?'act':''}"></div>`).join('');
+}
+function barajar(n){
+  const idx=[...Array(n).keys()];
+  for(let i=n-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
+  return idx;
+}
+function renderMision(){
+  const mi=MISIONES[estado.mision];
+  document.getElementById('zonaMision').innerHTML=`
+  <div class="campo" style="border-top:3px solid ${mi.color}">
+    <div class="campo-cab">
+      <span class="num">MISIÓN ${estado.mision+1} / 5</span>
+      <h2 style="color:${mi.color}">${mi.nombre}</h2>
+    </div>
+    <div class="batalla" id="batalla">${svgBatalla(mi,estado.mision)}</div>
+    <div class="intel-tip">📡 Hay ${mi.intel.length} informes de inteligencia ocultos en el campo de batalla. Haz clic sobre ellos antes de disparar.</div>
+    <div class="intel" id="intelCaja"></div>
+    <div class="campo-narr">${mi.narrativa}</div>
+    <div class="consola" id="consola"></div>
+  </div>`;
+  estado.pregunta=0;
+  renderPregunta();
+}
+function verIntel(mIdx,pIdx){
+  if(mIdx!==estado.mision) return;
+  const p=MISIONES[mIdx].intel[pIdx];
+  const caja=document.getElementById('intelCaja');
+  caja.classList.remove('on'); void caja.offsetWidth;
+  caja.innerHTML=`${p.icono} ${p.texto}`;
+  caja.classList.add('on');
+  const spot=document.getElementById(`spot-${mIdx}-${pIdx}`);
+  if(spot) spot.setAttribute('stroke','#6FA85C');
+  sfx('intel');
+}
+function renderPregunta(){
+  const mi=MISIONES[estado.mision],pr=mi.preguntas[estado.pregunta];
+  estado.ordenOps=barajar(pr.ops.length);
+  const letras=['A','B','C','D'];
+  document.getElementById('consola').innerHTML=`
+    <div class="p-etiqueta">▸ OBJETIVO ${estado.pregunta+1} DE ${mi.preguntas.length} · DRON ENEMIGO EN POSICIÓN</div>
+    <div class="p-texto">${pr.q}</div>
+    <div class="opciones">
+      ${estado.ordenOps.map((orig,k)=>`
+        <button class="opcion" id="op-${k}" onclick="responder(${k})">
+          <span class="letra">${letras[k]}</span><span>${pr.ops[orig]}</span>
+        </button>`).join('')}
+    </div>
+    <div class="feedback" id="fb"></div>
+    <button class="btn-s" id="btnSig" onclick="siguiente()"></button>`;
+  reiniciarDron();
+}
+function reiniciarDron(){
+  const dron=document.getElementById('dronCuerpo'), exp=document.getElementById('explosion');
+  if(dron){dron.style.opacity='1'} if(exp){exp.setAttribute('opacity','0')}
+}
+function animarDisparo(){
+  const fog=document.getElementById('fogonazo'), dron=document.getElementById('dronCuerpo'), exp=document.getElementById('explosion');
+  if(fog){fog.setAttribute('opacity','1'); setTimeout(()=>fog.setAttribute('opacity','0'),160);}
+  setTimeout(()=>{
+    if(dron) dron.style.opacity='0';
+    if(exp){exp.setAttribute('opacity','1'); setTimeout(()=>exp.setAttribute('opacity','0'),600);}
+  },170);
+}
+function animarLaser(){
+  const laser=document.getElementById('laser');
+  if(laser){laser.setAttribute('opacity','1'); setTimeout(()=>laser.setAttribute('opacity','0'),280);}
+  document.body.classList.add('impacto');
+  setTimeout(()=>document.body.classList.remove('impacto'),400);
+}
+function actualizarSangre(){
+  document.getElementById('litros').textContent=estado.sangre.toFixed(1)+' L';
+  document.getElementById('barraSangre').style.transform=`scaleX(${estado.sangre/5})`;
+  document.getElementById('hudErrores').textContent=estado.errores;
+  document.body.classList.remove('herido','critico');
+  if(estado.sangre<=2.0 && estado.sangre>0){document.body.classList.add('critico'); tamborBPM=118; programarTambores();}
+  else if(estado.sangre<5.0){document.body.classList.add('herido'); if(estado.sangre<=3.5){tamborBPM=88; programarTambores();}}
+}
+function responder(k){
+  const mi=MISIONES[estado.mision],pr=mi.preguntas[estado.pregunta];
+  const orig=estado.ordenOps[k], fb=document.getElementById('fb');
+  if(orig===pr.correcta){
+    estado.aciertos++;
+    document.getElementById('hudAciertos').textContent=estado.aciertos;
+    document.querySelectorAll('.opcion').forEach(b=>b.disabled=true);
+    document.getElementById(`op-${k}`).classList.add('ok');
+    sfx('disparo'); animarDisparo();
+    fb.className='feedback on bien';
+    fb.innerHTML=`<b>✔ DRON DERRIBADO.</b> ${pr.fb_ok}`;
+    const btn=document.getElementById('btnSig');
+    btn.classList.add('on');
+    btn.textContent=estado.pregunta<mi.preguntas.length-1?'▸ SIGUIENTE OBJETIVO':'🚩 LIBERAR EL FRENTE';
+  } else {
+    estado.errores++;
+    estado.sangre=Math.max(0,estado.sangre-0.5);
+    sfx('herida'); animarLaser(); actualizarSangre();
+    // el soldado se redibuja con más vendas
+    const bat=document.getElementById('batalla');
+    if(bat){const sol=bat.querySelector('#soldado'); if(sol) sol.outerHTML=svgSoldado(mi.color);}
+    document.getElementById(`op-${k}`).classList.add('mal');
+    document.getElementById(`op-${k}`).disabled=true;
+    fb.className='feedback on error';
+    fb.innerHTML=`<b>✘ EL DRON DISPARÓ PRIMERO · −0.5 L DE SANGRE.</b> ${pr.fb_mal} <br><span style="opacity:.8">Sigues en pie: intenta con las opciones restantes.</span>`;
+    if(estado.sangre<=0){ setTimeout(()=>terminar(false),900); }
+  }
+}
+function siguiente(){
+  const mi=MISIONES[estado.mision];
+  if(estado.pregunta<mi.preguntas.length-1){
+    estado.pregunta++; renderPregunta();
+    window.scrollTo({top:document.getElementById('consola').offsetTop-140,behavior:'smooth'});
+  } else {
+    sfx('victoria-frente');
+    estado.mision++;
+    if(estado.mision>=MISIONES.length){terminar(true);return;}
+    const trans=document.getElementById('transicion');
+    document.getElementById('transTitulo').textContent='✔ FRENTE LIBERADO';
+    document.getElementById('transMsj').innerHTML=
+      `Sistema <b style="color:var(--arena)">${['rectangular','polar','cilíndrico','esférico'][estado.mision-1]}</b> recuperado.<br>Avanzando al siguiente frente. Mantente con vida, soldado.`;
+    trans.classList.add('on');
+    setTimeout(()=>{trans.classList.remove('on');renderPuntos();renderMision();window.scrollTo({top:0,behavior:'smooth'});},2600);
+  }
+}
+function terminar(victoria){
+  if(estado.terminado) return;
+  estado.terminado=true;
+  clearInterval(tamborTimer); clearInterval(sirenaTimer);
+  document.getElementById('hud').classList.remove('on');
+  document.getElementById('juego').classList.remove('on');
+  document.getElementById('juego').style.display='none';
+  document.body.classList.remove('herido','critico');
+  const f=document.getElementById('final');
+  f.classList.add('on',victoria?'victoria':'derrota');
+  document.getElementById('finalEmoji').textContent=victoria?'🎖️':'🩸';
+  document.getElementById('finalTitulo').textContent=victoria?'✔ GUERRA GANADA':'✘ CAÍDO EN COMBATE';
+  document.getElementById('stAciertos').textContent=estado.aciertos;
+  document.getElementById('stErrores').textContent=estado.errores;
+  document.getElementById('stSangre').textContent=estado.sangre.toFixed(1)+' L';
+  document.getElementById('stFrentes').textContent=`${Math.min(estado.mision,5)}/5`;
+  document.getElementById('finalMsj').innerHTML=victoria
+    ?`Liberaste los cuatro sistemas de navegación del planeta. Ahora dominas la <b>descripción de puntos y superficies en coordenadas rectangulares, polares, cilíndricas y esféricas</b>, las conversiones entre sistemas y —lo más importante— el criterio para <b>elegir el sistema adecuado según la simetría del problema</b>. Misión cumplida, soldado.`
+    :`Perdiste los 5 litros antes de liberar los cinco frentes. Revisa los informes de inteligencia y la retroalimentación de cada herida: los errores más letales fueron confundir <b>r con ρ</b>, olvidar el cuadrante de <b>θ</b> y medir mal el ángulo <b>φ</b> desde el eje z. Recupérate y vuelve al combate.`;
+  window.scrollTo({top:0});
+}
+</script>
+</body>
+</html>
